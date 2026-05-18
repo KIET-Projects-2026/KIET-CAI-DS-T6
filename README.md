@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎓 Face Recognition Based Attendance System
 
 A comprehensive, real-time attendance management system using face recognition, QR codes, and blink detection for secure and automated attendance tracking.
@@ -528,3 +529,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ for educational institutions**
+=======
+# KIET-CAI-DS-T6
+Lip-Reading + Correction Agent
+>>>>>>> bf699d8f97791b7f6dc67d6c8c4d123bf8801123
