@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Face - Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h2>📸 Face Training</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="{{ url_for('student_management') }}" class="nav-link">Back to Students</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>Train Face Recognition</h1>
+                <p id="studentInfo">Training for: <span id="studentName"></span> (<span id="studentRoll"></span>)</p>
+            </div>
+
+            <div class="webcam-container">
+                <div class="video-wrapper">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="canvas" style="display:none;"></canvas>
+                </div>
+
+                <div class="training-controls">
+                    <div class="status-info">
+                        <h3 id="statusText">Press SPACE to capture image</h3>
+                        <p id="captureCount">Captured: 0 / 2</p>
+                    </div>
+
+                    <div class="button-group">
+                        <button id="captureBtn" class="btn btn-primary btn-lg">
+                            📸 Capture Image (SPACE)
+                        </button>
+                        <button id="completeBtn" class="btn btn-success btn-lg" style="display:none;">
+                            ✓ Complete Training
+                        </button>
+                        <a href="{{ url_for('student_management') }}" class="btn btn-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const rollNumber = urlParams.get('roll');
+        const studentName = urlParams.get('name');
+
+        document.getElementById('studentName').textContent = studentName;
+        document.getElementById('studentRoll').textContent = rollNumber;
+
+        let webcam = document.getElementById('webcam');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let capturedCount = 0;
+        const totalImages = 2;
+
+        // Start webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                webcam.srcObject = stream;
+            })
+            .catch(err => {
+                showMessage('Error accessing webcam: ' + err.message, 'error');
+            });
+
+        // Initialize training session
+        async function initTraining() {
+            const formData = new FormData();
+            formData.append('roll_number', rollNumber);
+            formData.append('name', studentName);
+
+            try {
+                const response = await fetch('/api/train-face', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error initializing training: ' + error.message, 'error');
+            }
+        }
+
+        // Capture image
+        async function captureImage() {
+            // Set canvas size to match video
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+
+            // Draw current frame to canvas
+            ctx.drawImage(webcam, 0, 0);
+
+            // Convert to base64
+            const frameData = canvas.toDataURL('image/jpeg');
+
+            // Send to server
+            try {
+                const response = await fetch('/api/capture-training-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ frame: frameData })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    capturedCount = result.count;
+                    document.getElementById('captureCount').textContent =
+                        `Captured: ${capturedCount} / ${totalImages}`;
+                    showMessage(result.message, 'success');
+
+                    if (capturedCount >= totalImages) {
+                        document.getElementById('statusText').textContent =
+                            'All images captured! Click Complete Training';
+                        document.getElementById('captureBtn').style.display = 'none';
+                        document.getElementById('completeBtn').style.display = 'inline-block';
+                    }
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error capturing image: ' + error.message, 'error');
+            }
+        }
+
+        // Complete training
+        async function completeTraining() {
+            document.getElementById('statusText').textContent = 'Training face model...';
+            showMessage('Training in progress...', 'info');
+
+            try {
+                const response = await fetch('/api/complete-training', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("student_management") }}';
+                    }, 2000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error completing training: ' + error.message, 'error');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('captureBtn').addEventListener('click', captureImage);
+        document.getElementById('completeBtn').addEventListener('click', completeTraining);
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && capturedCount < totalImages) {
+                e.preventDefault();
+                captureImage();
+            }
+        });
+
+        // Show message function
+        function showMessage(message, type) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `message-box message-${type} show`;
+
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 5000);
+        }
+
+        // Initialize on load
+        initTraining();
+    </script>
+</body>
+
+</html>

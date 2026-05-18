@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management - Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h2>👨‍🎓 Student Management</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('student_management') }}" class="nav-link active">Manage Students</a>
+                <a href="{{ url_for('webcam_attendance') }}" class="nav-link">Mark Attendance</a>
+                <a href="{{ url_for('attendance_report') }}" class="nav-link">Reports</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>Student Management</h1>
+                <p>Add, train, and manage student data</p>
+            </div>
+
+            <div class="management-layout">
+                <!-- Student Form -->
+                <div class="form-card">
+                    <h3>Add New Student</h3>
+                    <form id="studentForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="roll_number">Roll Number *</label>
+                                <input type="text" id="roll_number" name="roll_number" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="name">Full Name *</label>
+                                <input type="text" id="name" name="name" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="gender">Gender *</label>
+                                <select id="gender" name="gender" required>
+                                    <option value="">Select Gender</option>
+                                    {% for gender in genders %}
+                                    <option value="{{ gender }}">{{ gender }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="branch">Branch *</label>
+                                <select id="branch" name="branch" required>
+                                    <option value="">Select Branch</option>
+                                    {% for branch in branches %}
+                                    <option value="{{ branch }}">{{ branch }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone *</label>
+                                <input type="tel" id="phone" name="phone" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Student Data</button>
+                    </form>
+                </div>
+
+                <!-- Students List -->
+                <div class="table-card">
+                    <h3>Registered Students</h3>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Roll No</th>
+                                    <th>Name</th>
+                                    <th>Branch</th>
+                                    <th>Face Trained</th>
+                                    <th>QR Code</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ student.roll_number }}</td>
+                                    <td>{{ student.name }}</td>
+                                    <td><span class="badge">{{ student.branch }}</span></td>
+                                    <td>
+                                        {% if student.face_trained == 'Yes' %}
+                                        <span class="status-badge status-success">✓ Trained</span>
+                                        {% else %}
+                                        <span class="status-badge status-pending">✗ Not Trained</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if student.qr_code_path %}
+                                        <a href="{{ url_for('static', filename=student.qr_code_path.replace('static/', '')) }}"
+                                            target="_blank" class="btn-link">View QR</a>
+                                        {% else %}
+                                        <span class="text-muted">Not Generated</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-train"
+                                                onclick="trainFace('{{ student.roll_number }}', '{{ student.name }}')">
+                                                Train Face
+                                            </button>
+                                            <button class="btn btn-sm btn-qr"
+                                                onclick="generateQR('{{ student.roll_number }}')">
+                                                Generate QR
+                                            </button>
+                                            <button class="btn btn-sm btn-danger"
+                                                onclick="deleteStudent('{{ student.roll_number }}')">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <!-- Face Training Modal -->
+    <div id="trainModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Train Face</h2>
+                <button class="modal-close" onclick="closeTrainModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="trainStudentInfo" style="margin-bottom: 20px; font-size: 16px;"></p>
+
+                <div class="video-container"
+                    style="position: relative; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                    <video id="trainWebcam" autoplay playsinline style="width: 100%; display: block;"></video>
+                    <canvas id="trainCanvas" style="display:none;"></canvas>
+                </div>
+
+                <div id="capturedImagesContainer"
+                    style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <!-- Captured images will appear here -->
+                </div>
+
+                <div id="trainStatus"
+                    style="margin-bottom: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px; text-align: center;">
+                    <strong>Status:</strong> <span id="trainStatusText">Press "Capture" to take images (Need 3
+                        images)</span>
+                </div>
+
+                <div id="trainError"
+                    style="display: none; margin-bottom: 15px; padding: 10px; background: #fee; border: 1px solid #fcc; border-radius: 5px; color: #c00;">
+                    <!-- Error messages will appear here -->
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="captureBtn" class="btn btn-primary" onclick="captureTrainingImage()">
+                        📸 Capture
+                    </button>
+                    <button id="trainCompleteBtn" class="btn btn-success" onclick="completeTraining()"
+                        style="display:none;">
+                        ✓ Train & Complete LM
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeTrainModal()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .captured-image {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        let trainWebcamManager = null;
+        let currentTrainRoll = null;
+        let currentTrainName = null;
+        let capturedImages = [];
+        const REQUIRED_IMAGES = 3;
+
+        // Handle student form submission
+        document.getElementById('studentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+
+            try {
+                const response = await fetch('/api/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    e.target.reset();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error saving student: ' + error.message, 'error');
+            }
+        });
+
+        async function trainFace(rollNumber, name) {
+            currentTrainRoll = rollNumber;
+            currentTrainName = name;
+            capturedImages = [];
+
+            // Show modal
+            document.getElementById('trainModal').style.display = 'flex';
+            document.getElementById('trainStudentInfo').textContent = `Training face for: ${name} (${rollNumber})`;
+            document.getElementById('capturedImagesContainer').innerHTML = '';
+            document.getElementById('trainError').style.display = 'none';
+            document.getElementById('captureBtn').style.display = 'inline-block';
+            document.getElementById('trainCompleteBtn').style.display = 'none';
+            updateTrainStatus();
+
+            // Initialize training session
+            const formData = new FormData();
+            formData.append('roll_number', rollNumber);
+            formData.append('name', name);
+
+            try {
+                const response = await fetch('/api/train-face', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    showTrainError(result.message);
+                    return;
+                }
+            } catch (error) {
+                showTrainError('Error initializing training: ' + error.message);
+                return;
+            }
+
+            // Start webcam
+            const video = document.getElementById('trainWebcam');
+            const canvas = document.getElementById('trainCanvas');
+            trainWebcamManager = new WebcamManager(video, canvas);
+
+            const started = await trainWebcamManager.start();
+            if (!started) {
+                showTrainError('Could not access webcam. Please grant camera permissions.');
+            }
+        }
+
+        async function captureTrainingImage() {
+            if (!trainWebcamManager) return;
+
+            const frameData = trainWebcamManager.captureFrame();
+            if (!frameData) {
+                showTrainError('Failed to capture image. Please try again.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/capture-training-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ frame: frameData })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Add captured image to display
+                    const img = document.createElement('img');
+                    img.src = frameData;
+                    img.className = 'captured-image';
+                    document.getElementById('capturedImagesContainer').appendChild(img);
+
+                    capturedImages.push(frameData);
+                    updateTrainStatus();
+
+                    if (capturedImages.length >= REQUIRED_IMAGES) {
+                        document.getElementById('captureBtn').style.display = 'none';
+                        document.getElementById('trainCompleteBtn').style.display = 'inline-block';
+                    }
+                } else {
+                    showTrainError(result.message);
+                }
+            } catch (error) {
+                showTrainError('Error capturing image: ' + error.message);
+            }
+        }
+
+        async function completeTraining() {
+            document.getElementById('trainStatusText').textContent = 'Training face model... Please wait...';
+            document.getElementById('trainCompleteBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/complete-training', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    closeTrainModal();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showTrainError(result.message);
+                    document.getElementById('trainCompleteBtn').disabled = false;
+                }
+            } catch (error) {
+                showTrainError('Error completing training: ' + error.message);
+                document.getElementById('trainCompleteBtn').disabled = false;
+            }
+        }
+
+        function closeTrainModal() {
+            if (trainWebcamManager) {
+                trainWebcamManager.stop();
+                trainWebcamManager = null;
+            }
+            document.getElementById('trainModal').style.display = 'none';
+            capturedImages = [];
+        }
+
+        function updateTrainStatus() {
+            const statusText = `Captured ${capturedImages.length} / ${REQUIRED_IMAGES} images`;
+            document.getElementById('trainStatusText').textContent = statusText;
+        }
+
+        function showTrainError(message) {
+            const errorDiv = document.getElementById('trainError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        async function generateQR(rollNumber) {
+            showMessage('Generating QR code...', 'info');
+
+            const formData = new FormData();
+            formData.append('roll_number', rollNumber);
+
+            try {
+                const response = await fetch('/api/generate-qr', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error generating QR: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteStudent(rollNumber) {
+            if (!confirm('Are you sure you want to delete this student?')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('roll_number', rollNumber);
+
+            try {
+                const response = await fetch('/api/delete-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting student: ' + error.message, 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `message-box message-${type} show`;
+
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report - Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h2>📋 Attendance Report</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                {% if role == 'faculty' %}
+                <a href="{{ url_for('student_management') }}" class="nav-link">Manage Students</a>
+                <a href="{{ url_for('webcam_attendance') }}" class="nav-link">Mark Attendance</a>
+                {% endif %}
+                <a href="{{ url_for('attendance_report') }}" class="nav-link active">Reports</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>Attendance Report</h1>
+                <p>View and export attendance records</p>
+            </div>
+
+            <div class="report-controls">
+                <div class="filter-group">
+                    <div class="form-group">
+                        <label for="filterDate">Filter by Date</label>
+                        <input type="date" id="filterDate" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="filterBranch">Filter by Branch</label>
+                        <select id="filterBranch" class="form-control">
+                            <option value="">All Branches</option>
+                            {% for branch in branches %}
+                            <option value="{{ branch }}">{{ branch }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="searchInput">Search</label>
+                        <input type="text" id="searchInput" class="form-control"
+                            placeholder="Search by name or roll number">
+                    </div>
+                </div>
+
+                <div class="action-group">
+                    <button id="filterBtn" class="btn btn-primary">Apply Filters</button>
+                    <button id="resetFilterBtn" class="btn btn-secondary">Reset</button>
+                    <a href="/api/export-attendance" class="btn btn-success">📥 Export to CSV</a>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Attendance Records</h3>
+                    <p id="recordCount">Total Records: {{ attendance_data|length }}</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Roll Number</th>
+                                <th>Student Name</th>
+                                <th>Branch</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Timestamp</th>
+                                {% if role == 'faculty' %}
+                                <th>Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            {% for record in attendance_data %}
+                            <tr data-timestamp="{{ record.timestamp }}">
+                                <td>{{ record.roll_number }}</td>
+                                <td>{{ record.name }}</td>
+                                <td><span class="badge">{{ record.branch }}</span></td>
+                                <td>{{ record.date }}</td>
+                                <td>{{ record.time }}</td>
+                                <td>{{ record.timestamp }}</td>
+                                {% if role == 'faculty' %}
+                                <td>
+                                    <button class="btn btn-danger btn-sm"
+                                        onclick="deleteAttendance('{{ record.timestamp }}', '{{ record.name }}')">🗑️
+                                        Delete</button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if not attendance_data %}
+                <div class="empty-state">
+                    <p>No attendance records found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allRecords = {{ attendance_data | tojson }};
+
+        document.getElementById('filterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFilterBtn').addEventListener('click', resetFilters);
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+        function applyFilters() {
+            const date = document.getElementById('filterDate').value;
+            const branch = document.getElementById('filterBranch').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = allRecords;
+
+            // Filter by date
+            if (date) {
+                filtered = filtered.filter(record => record.date === date);
+            }
+
+            // Filter by branch
+            if (branch) {
+                filtered = filtered.filter(record => record.branch === branch);
+            }
+
+            // Search filter
+            if (search) {
+                filtered = filtered.filter(record =>
+                    record.name.toLowerCase().includes(search) ||
+                    record.roll_number.toLowerCase().includes(search)
+                );
+            }
+
+            displayRecords(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('filterDate').value = '';
+            document.getElementById('filterBranch').value = '';
+            document.getElementById('searchInput').value = '';
+            displayRecords(allRecords);
+        }
+
+        function displayRecords(records) {
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = '';
+
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">No records found</td></tr>';
+            } else {
+                records.forEach(record => {
+                    const row = `
+                        <tr data-timestamp="${record.timestamp}">
+                            <td>${record.roll_number}</td>
+                            <td>${record.name}</td>
+                            <td><span class="badge">${record.branch}</span></td>
+                            <td>${record.date}</td>
+                            <td>${record.time}</td>
+                            <td>${record.timestamp}</td>
+                            {% if role == 'faculty' %}
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteAttendance('${record.timestamp}', '${record.name}')">🗑️ Delete</button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            }
+
+            document.getElementById('recordCount').textContent = `Total Records: ${records.length}`;
+        }
+
+        // Load data via API
+        async function loadAttendanceData() {
+            try {
+                const response = await fetch('/api/get-attendance-report');
+                const result = await response.json();
+
+                if (result.success) {
+                    allRecords = result.data;
+                    displayRecords(allRecords);
+                }
+            } catch (error) {
+                console.error('Error loading attendance data:', error);
+            }
+        }
+
+        // Delete attendance record
+        async function deleteAttendance(timestamp, studentName) {
+            if (!confirm(`Are you sure you want to delete attendance record for ${studentName} at ${timestamp}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ timestamp: timestamp })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Attendance record deleted successfully!');
+                    // Remove from local data
+                    allRecords = allRecords.filter(r => r.timestamp !== timestamp);
+                    applyFilters(); // Refresh display
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error deleting attendance: ' + error.message);
+            }
+        }
+
+        // Initialize
+        displayRecords(allRecords);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Project specific - Sensitive Data
+data/face_encodings.pkl
+data/attendance.csv
+data/attendance_export.csv
+data/training_images/
+static/qr_codes/
+
+# Keep directory structure but ignore contents
+!data/.gitkeep
+!static/qr_codes/.gitkeep
+!data/training_images/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env

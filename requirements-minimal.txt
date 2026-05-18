@@ -1,0 +1,11 @@
+# Alternative 2: Minimal/Core Dependencies Only
+# Install only what's absolutely necessary
+
+Flask
+opencv-python
+numpy
+pandas
+Pillow
+qrcode
+pyzbar
+gunicorn

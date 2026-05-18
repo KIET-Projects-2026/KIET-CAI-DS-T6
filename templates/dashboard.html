@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h2>📊 Attendance Dashboard</h2>
+            </div>
+            <div class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-link active">Dashboard</a>
+                {% if role == 'faculty' %}
+                <a href="{{ url_for('student_management') }}" class="nav-link">Manage Students</a>
+                <a href="{{ url_for('webcam_attendance') }}" class="nav-link">Mark Attendance</a>
+                {% endif %}
+                <a href="{{ url_for('attendance_report') }}" class="nav-link">Reports</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>Welcome, {{ 'Faculty' if role == 'faculty' else 'Student' }}!</h1>
+                <p>Today's attendance overview</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3>Total Present</h3>
+                        <p class="stat-value">{{ stats.total_present }}</p>
+                    </div>
+                </div>
+
+                {% for branch in branches %}
+                <div class="stat-card">
+                    <div class="stat-icon">🎓</div>
+                    <div class="stat-content">
+                        <h3>{{ branch }}</h3>
+                        <p class="stat-value">{{ stats.branch_wise.get(branch, 0) }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Branch-wise Attendance Distribution</h3>
+                    <canvas id="pieChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Attendance by Branch</h3>
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Prepare data for charts
+        const branchData = {{ stats.branch_wise | tojson }};
+        const branches = Object.keys(branchData);
+        const counts = Object.values(branchData);
+
+        // Pie Chart
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: branches,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: [
+                        '#4F46E5',
+                        '#7C3AED',
+                        '#EC4899',
+                        '#F59E0B',
+                        '#10B981'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: branches,
+                datasets: [{
+                    label: 'Students Present',
+                    data: counts,
+                    backgroundColor: '#4F46E5'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

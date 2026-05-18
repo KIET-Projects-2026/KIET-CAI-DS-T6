@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="landing-page">
+    <div class="container">
+        <div class="landing-content">
+            <h1 class="main-title">Face Recognition Attendance System</h1>
+            <p class="subtitle">Secure, Automated, and Efficient</p>
+            
+            <div class="role-cards">
+                <div class="role-card">
+                    <div class="role-icon">👨‍🎓</div>
+                    <h2>Student</h2>
+                    <p>View your attendance records and analytics</p>
+                    <a href="{{ url_for('student_access') }}" class="btn btn-primary">Join as Student</a>
+                </div>
+                
+                <div class="role-card">
+                    <div class="role-icon">👨‍🏫</div>
+                    <h2>Faculty</h2>
+                    <p>Manage students and mark attendance</p>
+                    <a href="{{ url_for('faculty_login') }}" class="btn btn-secondary">Join as Faculty</a>
+                </div>
+            </div>
+            
+            <div class="features">
+                <div class="feature-item">
+                    <span class="feature-icon">🔒</span>
+                    <span>Secure Authentication</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📷</span>
+                    <span>Face Recognition</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📊</span>
+                    <span>Real-time Analytics</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎯</span>
+                    <span>QR Verification</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

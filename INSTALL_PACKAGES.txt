@@ -1,0 +1,23 @@
+# Alternative 3: Step-by-Step Installation Commands
+# Use this if requirements.txt fails completely
+# Install packages one by one in this order
+
+# Core framework
+pip install Flask
+
+# Image processing (may take time)
+pip install opencv-python
+
+# Data processing
+pip install numpy
+pip install pandas
+
+# Image handling
+pip install Pillow
+
+# QR code functionality
+pip install qrcode
+pip install pyzbar
+
+# Production server
+pip install gunicorn

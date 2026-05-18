@@ -1,0 +1,5 @@
+roll_number,name,gender,email,phone,branch,qr_code_path,face_trained
+22b21a4335,Magi Ganesh,Male,magiganesh271005@gmail.com,9390096941,CAI,static/qr_codes/qr_22b21a4335_408f6aac.png,Yes
+22B21A4304,K.V.Manasa,Female,kasulamanasa@gmail.com,9391149375,CAI,static/qr_codes/qr_22B21A4304_9dc1ef76.png,Yes
+22B21A4342,S.Naga Balaji,Male,balu@gmail.com,9059963054,CAI,static/qr_codes/qr_22B21A4342_e6aa2062.png,Yes
+22B21A4344,S.Akshay,Male,Aishu@gmail.com,2345678934,CAI,static/qr_codes/qr_22B21A4344_e4248a2c.png,Yes
